@@ -8,7 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-import { View, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 
 import HomeScreen from './src/screens/HomeScreen';
 import ShopScreen from './src/screens/ShopScreen';
@@ -22,18 +22,10 @@ import OrderDetailScreen from './src/screens/OrderDetailScreen';
 import CheckoutScreen from './src/screens/CheckoutScreen';
 import WishlistScreen from './src/screens/WishlistScreen';
 import SearchScreen from './src/screens/SearchScreen';
+import api from './src/api/client';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-
-const COLORS = {
-  primary: '#111111',
-  accent: '#E34F20',
-  bg: '#F8F8F8',
-  white: '#FFFFFF',
-  gray: '#6B7280',
-  lightGray: '#F3F3F3',
-};
 
 function ShopStack() {
   return (
@@ -80,14 +72,31 @@ function CartStack() {
 
 export default function App() {
   const [loading, setLoading] = useState(true);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     setTimeout(() => setLoading(false), 500);
+    fetchCartCount();
   }, []);
+
+  const fetchCartCount = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      const res = await api.get('/cart');
+      const items = res.data.data?.items || [];
+      setCartCount(items.reduce((s, i) => s + i.quantity, 0));
+    } catch {}
+  };
 
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' }}>
+        <View style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: '#E34F20', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <Text style={{ fontSize: 36, fontWeight: '900', color: '#fff' }}>S</Text>
+        </View>
+        <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginBottom: 4 }}>StepUp</Text>
+        <Text style={{ color: '#666', fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 32 }}>Premium Footwear</Text>
         <ActivityIndicator color="#E34F20" size="large" />
       </View>
     );
@@ -105,7 +114,7 @@ export default function App() {
                 backgroundColor: '#FFFFFF',
                 borderTopWidth: 1,
                 borderTopColor: '#F0F0F0',
-                height: 60,
+                height: 62,
                 paddingBottom: 8,
                 paddingTop: 6,
                 elevation: 20,
@@ -116,20 +125,34 @@ export default function App() {
               tabBarActiveTintColor: '#E34F20',
               tabBarInactiveTintColor: '#9CA3AF',
               tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.3 },
-              tabBarIcon: ({ color, size, focused }) => {
+              tabBarIcon: ({ color, focused }) => {
                 const icons = {
                   Home: focused ? 'home' : 'home-outline',
                   Shop: focused ? 'grid' : 'grid-outline',
                   Cart: focused ? 'bag' : 'bag-outline',
                   Profile: focused ? 'person' : 'person-outline',
                 };
-                return <Ionicons name={icons[route.name]} size={22} color={color} />;
+                return (
+                  <View>
+                    <Ionicons name={icons[route.name]} size={22} color={color} />
+                    {route.name === 'Cart' && cartCount > 0 && (
+                      <View style={{
+                        position: 'absolute', top: -4, right: -8,
+                        backgroundColor: '#E34F20', borderRadius: 8,
+                        minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center',
+                        paddingHorizontal: 3,
+                      }}>
+                        <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>{cartCount}</Text>
+                      </View>
+                    )}
+                  </View>
+                );
               },
             })}
           >
             <Tab.Screen name="Home" component={HomeStack} />
             <Tab.Screen name="Shop" component={ShopStack} />
-            <Tab.Screen name="Cart" component={CartStack} />
+            <Tab.Screen name="Cart" component={CartStack} listeners={{ focus: fetchCartCount }} />
             <Tab.Screen name="Profile" component={ProfileStack} />
           </Tab.Navigator>
         </NavigationContainer>

@@ -59,26 +59,23 @@ export default function WishlistScreen({ navigation }) {
           keyExtractor={(i) => i.product_id}
           contentContainerStyle={{ padding: 16, gap: 16 }}
           columnWrapperStyle={{ gap: 16 }}
-          renderItem={({ item }) => {
-            const p = item.product || item;
-            return (
-              <TouchableOpacity
-                style={[styles.card, { width: (width - 48) / 2 }]}
-                onPress={() => navigation.navigate('ShopList', { screen: 'Product', params: { slug: p.slug || item.slug } })}
-              >
-                <View style={styles.imgWrap}>
-                  <Image source={{ uri: p.primary_image || item.primary_image }} style={styles.img} />
-                  <TouchableOpacity style={styles.heartBtn} onPress={() => remove(item.product_id)}>
-                    <Ionicons name="heart" size={18} color="#EF4444" />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.info}>
-                  <Text style={styles.name} numberOfLines={2}>{p.name || item.name}</Text>
-                  <Text style={styles.price}>{formatPrice(p.sale_price || p.base_price || item.sale_price || item.base_price)}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.card, { width: (width - 48) / 2 }]}
+              onPress={() => navigation.navigate('ShopList', { screen: 'Product', params: { slug: item.slug } })}
+            >
+              <View style={styles.imgWrap}>
+                <Image source={{ uri: item.image_url }} style={styles.img} />
+                <TouchableOpacity style={styles.heartBtn} onPress={() => remove(item.product_id)}>
+                  <Ionicons name="heart" size={18} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.info}>
+                <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
+                <Text style={styles.price}>{item.price ? '₹' + parseFloat(item.price).toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '—'}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         />
       )}
     </SafeAreaView>
