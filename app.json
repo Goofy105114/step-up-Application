@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#111111"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.stepup.footwear"
@@ -28,7 +30,10 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiUrl": "https://step-up-09ee.onrender.com/api"
+      "apiUrl": "https://step-up-09ee.onrender.com/api",
+      "eas": {
+        "projectId": "15b23a52-e58f-4954-b749-7cd1c8e1b747"
+      }
     }
   }
 }
