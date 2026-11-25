@@ -27,6 +27,17 @@ import api from './src/api/client';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+function HomeStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="Product" component={ProductScreen} />
+      <Stack.Screen name="ShopList" component={ShopScreen} />
+      <Stack.Screen name="Search" component={SearchScreen} />
+    </Stack.Navigator>
+  );
+}
+
 function ShopStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -37,13 +48,11 @@ function ShopStack() {
   );
 }
 
-function HomeStack() {
+function CartStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="HomeMain" component={HomeScreen} />
-      <Stack.Screen name="Product" component={ProductScreen} />
-      <Stack.Screen name="ShopList" component={ShopScreen} />
-      <Stack.Screen name="Search" component={SearchScreen} />
+      <Stack.Screen name="CartMain" component={CartScreen} />
+      <Stack.Screen name="Checkout" component={CheckoutScreen} />
     </Stack.Navigator>
   );
 }
@@ -61,21 +70,12 @@ function ProfileStack() {
   );
 }
 
-function CartStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="CartMain" component={CartScreen} />
-      <Stack.Screen name="Checkout" component={CheckoutScreen} />
-    </Stack.Navigator>
-  );
-}
-
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    setTimeout(() => setLoading(false), 500);
+    setTimeout(() => setLoading(false), 800);
     fetchCartCount();
   }, []);
 
@@ -91,12 +91,13 @@ export default function App() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' }}>
-        <View style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: '#E34F20', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D0D0D' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', backgroundColor: '#E34F20', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 16, marginBottom: 20 }}>
           <Text style={{ fontSize: 36, fontWeight: '900', color: '#fff' }}>S</Text>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: '#fff' }}>u</Text>
         </View>
-        <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginBottom: 4 }}>StepUp</Text>
-        <Text style={{ color: '#666', fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 32 }}>Premium Footwear</Text>
+        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '900', letterSpacing: 4, marginBottom: 4 }}>STEPUP</Text>
+        <Text style={{ color: '#6B7280', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 48 }}>Premium Footwear</Text>
         <ActivityIndicator color="#E34F20" size="large" />
       </View>
     );
@@ -106,25 +107,21 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NavigationContainer>
-          <StatusBar style="dark" />
+          <StatusBar style="light" />
           <Tab.Navigator
             screenOptions={({ route }) => ({
               headerShown: false,
               tabBarStyle: {
-                backgroundColor: '#FFFFFF',
+                backgroundColor: '#111111',
                 borderTopWidth: 1,
-                borderTopColor: '#F0F0F0',
+                borderTopColor: '#1F1F1F',
                 height: 62,
                 paddingBottom: 8,
                 paddingTop: 6,
-                elevation: 20,
-                shadowColor: '#000',
-                shadowOpacity: 0.08,
-                shadowRadius: 20,
               },
               tabBarActiveTintColor: '#E34F20',
-              tabBarInactiveTintColor: '#9CA3AF',
-              tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.3 },
+              tabBarInactiveTintColor: '#4B5563',
+              tabBarLabelStyle: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
               tabBarIcon: ({ color, focused }) => {
                 const icons = {
                   Home: focused ? 'home' : 'home-outline',
@@ -137,12 +134,12 @@ export default function App() {
                     <Ionicons name={icons[route.name]} size={22} color={color} />
                     {route.name === 'Cart' && cartCount > 0 && (
                       <View style={{
-                        position: 'absolute', top: -4, right: -8,
+                        position: 'absolute', top: -5, right: -8,
                         backgroundColor: '#E34F20', borderRadius: 8,
                         minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center',
-                        paddingHorizontal: 3,
+                        paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#0D0D0D',
                       }}>
-                        <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>{cartCount}</Text>
+                        <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>{cartCount > 9 ? '9+' : cartCount}</Text>
                       </View>
                     )}
                   </View>
@@ -156,7 +153,22 @@ export default function App() {
             <Tab.Screen name="Profile" component={ProfileStack} />
           </Tab.Navigator>
         </NavigationContainer>
-        <Toast />
+        <Toast
+          config={{
+            success: (props) => (
+              <View style={{ backgroundColor: '#1A1A1A', borderRadius: 12, padding: 14, marginHorizontal: 16, borderLeftWidth: 3, borderLeftColor: '#22C55E', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Ionicons name="checkmark-circle" size={20} color="#22C55E" />
+                <View><Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{props.text1}</Text>{props.text2 ? <Text style={{ color: '#6B7280', fontSize: 11, marginTop: 2 }}>{props.text2}</Text> : null}</View>
+              </View>
+            ),
+            error: (props) => (
+              <View style={{ backgroundColor: '#1A1A1A', borderRadius: 12, padding: 14, marginHorizontal: 16, borderLeftWidth: 3, borderLeftColor: '#EF4444', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Ionicons name="alert-circle" size={20} color="#EF4444" />
+                <View><Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{props.text1}</Text></View>
+              </View>
+            ),
+          }}
+        />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

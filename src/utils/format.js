@@ -1,9 +1,11 @@
 export const formatPrice = (amount) => {
   if (!amount && amount !== 0) return '—';
-  return '₹' + parseFloat(amount).toLocaleString('en-IN', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+  const n = parseFloat(amount);
+  if (isNaN(n)) return '—';
+  if (n >= 1000) {
+    return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  }
+  return '₹' + n.toFixed(0);
 };
 
 export const formatDate = (dateStr) => {
