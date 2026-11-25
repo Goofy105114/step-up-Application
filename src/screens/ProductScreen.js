@@ -5,16 +5,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/client';
 import { formatPrice } from '../utils/format';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
-const C = {
-  bg: '#F8F8F8', white: '#fff', primary: '#111', accent: '#E34F20',
-  gray: '#6B7280', light: '#F3F3F3', border: '#EBEBEB',
-};
+const C = { bg: '#0D0D0D', card: '#1A1A1A', card2: '#222', border: '#2A2A2A', accent: '#E34F20', white: '#fff', gray: '#9CA3AF', dim: '#6B7280' };
+
+const SPECS = [
+  { icon: 'flash-outline', title: 'Carbon Fiber Plate Propulsion', desc: 'Full-length dual-density energy rebound' },
+  { icon: 'layers-outline', title: 'Breathable Engineered FlyWeave', desc: 'Zonal support with zero-chafing lock-down' },
+  { icon: 'car-outline', title: 'Free Express Delivery & 30-Day Trial', desc: 'From top exchange program' },
+];
 
 export default function ProductScreen({ navigation, route }) {
   const { slug } = route.params;
@@ -25,6 +29,7 @@ export default function ProductScreen({ navigation, route }) {
   const [addingToCart, setAddingToCart] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
+  const [expandedSpec, setExpandedSpec] = useState(null);
 
   useEffect(() => { fetchProduct(); }, [slug]);
 
@@ -42,17 +47,12 @@ export default function ProductScreen({ navigation, route }) {
   };
 
   const colors = product ? [...new Set(product.variants?.map(v => v.color))] : [];
-  const sizesForColor = product
-    ? product.variants?.filter(v => v.color === selectedColor) || []
-    : [];
+  const sizesForColor = product ? (product.variants?.filter(v => v.color === selectedColor) || []) : [];
 
   const selectColor = (color) => {
     setSelectedColor(color);
-    const v = product.variants.find(v => v.color === color);
-    setSelectedVariant(v);
+    setSelectedVariant(product.variants.find(v => v.color === color));
   };
-
-  const selectSize = (variant) => setSelectedVariant(variant);
 
   const addToCart = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -67,12 +67,8 @@ export default function ProductScreen({ navigation, route }) {
     if (selectedVariant.stock_qty < 1) { Toast.show({ type: 'error', text1: 'Out of stock' }); return; }
     setAddingToCart(true);
     try {
-      await api.post('/cart/items', {
-        product_id: product.id,
-        variant_id: selectedVariant.id,
-        quantity: 1,
-      });
-      Toast.show({ type: 'success', text1: 'Added to cart! 🛍️', text2: `${product.name} · Size ${selectedVariant.size}` });
+      await api.post('/cart/items', { product_id: product.id, variant_id: selectedVariant.id, quantity: 1 });
+      Toast.show({ type: 'success', text1: 'Added to bag! 🛍️', text2: `${product.name} · Size ${selectedVariant.size}` });
     } catch (e) {
       Toast.show({ type: 'error', text1: e.response?.data?.message || 'Failed to add' });
     } finally { setAddingToCart(false); }
@@ -82,13 +78,10 @@ export default function ProductScreen({ navigation, route }) {
     const token = await AsyncStorage.getItem('token');
     if (!token) { navigation.navigate('Profile'); return; }
     try {
-      if (wishlisted) {
-        await api.delete(`/wishlist/${product.id}`);
-      } else {
-        await api.post('/wishlist', { product_id: product.id });
-      }
+      if (wishlisted) await api.delete(`/wishlist/${product.id}`);
+      else await api.post('/wishlist', { product_id: product.id });
       setWishlisted(!wishlisted);
-      Toast.show({ type: 'success', text1: wishlisted ? 'Removed from wishlist' : 'Added to wishlist ❤️' });
+      Toast.show({ type: 'success', text1: wishlisted ? 'Removed from wishlist' : 'Saved to wishlist ❤️' });
     } catch {}
   };
 
@@ -98,41 +91,48 @@ export default function ProductScreen({ navigation, route }) {
     </View>
   );
   if (!product) return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}>
       <Text style={{ color: C.gray }}>Product not found</Text>
     </View>
   );
 
-  const images = product.images?.length
-    ? product.images.map(i => i.url)
-    : product.primary_image ? [product.primary_image] : [];
-
+  const images = product.images?.length ? product.images.map(i => i.url) : product.primary_image ? [product.primary_image] : [];
   const discount = product.sale_price
-    ? Math.round(((product.base_price - product.sale_price) / product.base_price) * 100)
+    ? Math.round(((parseFloat(product.base_price) - parseFloat(product.sale_price)) / parseFloat(product.base_price)) * 100)
     : null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
-      {/* Back + wishlist */}
+
+      {/* Top bar */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={C.primary} />
+          <Ionicons name="arrow-back" size={20} color={C.white} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn} onPress={toggleWishlist}>
-          <Ionicons name={wishlisted ? 'heart' : 'heart-outline'} size={22} color={wishlisted ? '#EF4444' : C.primary} />
-        </TouchableOpacity>
+        <Text style={styles.topTitle}>Product Detail</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={styles.iconBtn}><Ionicons name="share-outline" size={18} color={C.white} /></TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={toggleWishlist}>
+            <Ionicons name={wishlisted ? 'heart' : 'heart-outline'} size={18} color={wishlisted ? C.accent : C.white} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-        {/* Image */}
-        <View style={styles.imageSection}>
-          <Image
-            source={{ uri: images[imgIdx] || 'https://via.placeholder.com/400' }}
-            style={styles.mainImage}
-            resizeMode="cover"
-          />
+
+        {/* Image gallery */}
+        <View style={styles.imgContainer}>
+          <Image source={{ uri: images[imgIdx] || 'https://via.placeholder.com/400' }} style={styles.mainImg} resizeMode="cover" />
+          <LinearGradient colors={['rgba(0,0,0,0.3)', 'transparent', 'transparent', 'rgba(13,13,13,0.9)']} style={styles.imgGrad} />
+
+          {/* Badges */}
+          {product.is_new_arrival && (
+            <View style={styles.limitedBadge}><Text style={styles.limitedText}>✦ LIMITED RELEASE 2026</Text></View>
+          )}
+
+          {/* Image dots */}
           {images.length > 1 && (
-            <View style={styles.imageDots}>
+            <View style={styles.imgDots}>
               {images.map((_, i) => (
                 <TouchableOpacity key={i} onPress={() => setImgIdx(i)}>
                   <View style={[styles.imgDot, i === imgIdx && styles.imgDotActive]} />
@@ -140,29 +140,32 @@ export default function ProductScreen({ navigation, route }) {
               ))}
             </View>
           )}
-          {discount && (
-            <View style={styles.discountTag}>
-              <Text style={styles.discountTagText}>{discount}% OFF</Text>
-            </View>
-          )}
+
+          {/* Product name overlay */}
+          <View style={styles.imgOverlay}>
+            <Text style={styles.imgProductName}>{(product.brand || 'STEPUP').toUpperCase()} // SERIES 04</Text>
+          </View>
         </View>
 
+        {/* Content */}
         <View style={styles.content}>
-          {/* Product info */}
-          <View style={styles.infoRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.brand}>{product.brand || 'StepUp'} · {product.category_name}</Text>
-              <Text style={styles.name}>{product.name}</Text>
-            </View>
+
+          {/* Brand + rating row */}
+          <View style={styles.brandRow}>
+            <Text style={styles.brandTag}>{(product.brand || 'StepUp').toUpperCase()} PERFORMANCE // SERIES 04</Text>
+            {product.is_bestseller && <View style={styles.topRatedBadge}><Text style={styles.topRatedText}>⭐ Top Rated</Text></View>}
           </View>
+
+          <Text style={styles.productName}>{product.name}</Text>
 
           {/* Rating */}
           {product.avg_rating > 0 && (
             <View style={styles.ratingRow}>
               {[1,2,3,4,5].map(i => (
-                <Ionicons key={i} name={i <= Math.round(product.avg_rating) ? 'star' : 'star-outline'} size={14} color="#F59E0B" />
+                <Ionicons key={i} name="star" size={13} color={i <= Math.round(product.avg_rating) ? '#F59E0B' : C.card2} />
               ))}
-              <Text style={styles.ratingText}>{parseFloat(product.avg_rating).toFixed(1)} ({product.review_count} reviews)</Text>
+              <Text style={styles.ratingText}>{parseFloat(product.avg_rating).toFixed(1)}</Text>
+              <Text style={styles.reviewCount}>({product.review_count} verified reviews)</Text>
             </View>
           )}
 
@@ -170,23 +173,26 @@ export default function ProductScreen({ navigation, route }) {
           <View style={styles.priceRow}>
             <Text style={styles.price}>{formatPrice(product.sale_price || product.base_price)}</Text>
             {product.sale_price && <Text style={styles.oldPrice}>{formatPrice(product.base_price)}</Text>}
+            {discount && <View style={styles.discountTag}><Text style={styles.discountText}>-{discount}% OFF</Text></View>}
           </View>
 
           {/* Color picker */}
           {colors.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Color: <Text style={{ fontWeight: '800' }}>{selectedColor}</Text></Text>
+              <View style={styles.sectionLabelRow}>
+                <Text style={styles.sectionLabel}>Select Color: <Text style={{ color: C.white }}>{selectedColor}</Text></Text>
+                <Text style={styles.colorCount}>{colors.length} COLORWAYS</Text>
+              </View>
               <View style={styles.colorRow}>
                 {colors.map((color) => {
                   const v = product.variants.find(v => v.color === color);
                   return (
                     <TouchableOpacity
                       key={color}
-                      style={[styles.colorBtn, selectedColor === color && styles.colorBtnActive]}
+                      style={[styles.colorSwatch, selectedColor === color && styles.colorSwatchActive]}
                       onPress={() => selectColor(color)}
                     >
-                      <View style={[styles.colorDot, { backgroundColor: v?.color_hex || '#ccc' }]} />
-                      <Text style={[styles.colorLabel, selectedColor === color && { color: C.primary }]}>{color}</Text>
+                      <View style={[styles.colorDot, { backgroundColor: v?.color_hex || '#888' }]} />
                     </TouchableOpacity>
                   );
                 })}
@@ -197,8 +203,11 @@ export default function ProductScreen({ navigation, route }) {
           {/* Size picker */}
           {sizesForColor.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Size</Text>
-              <View style={styles.sizeRow}>
+              <View style={styles.sectionLabelRow}>
+                <Text style={styles.sectionLabel}>Select US Size (Men's)</Text>
+                <TouchableOpacity><Text style={styles.guideLink}>↑ Size Guide</Text></TouchableOpacity>
+              </View>
+              <View style={styles.sizeGrid}>
                 {sizesForColor.map((v) => (
                   <TouchableOpacity
                     key={v.id}
@@ -207,82 +216,77 @@ export default function ProductScreen({ navigation, route }) {
                       selectedVariant?.id === v.id && styles.sizeBtnActive,
                       v.stock_qty < 1 && styles.sizeBtnOut,
                     ]}
-                    onPress={() => v.stock_qty > 0 && selectSize(v)}
+                    onPress={() => v.stock_qty > 0 && setSelectedVariant(v)}
                     disabled={v.stock_qty < 1}
                   >
                     <Text style={[
                       styles.sizeText,
                       selectedVariant?.id === v.id && styles.sizeTextActive,
-                      v.stock_qty < 1 && { color: '#D1D5DB' },
+                      v.stock_qty < 1 && styles.sizeTextOut,
                     ]}>{v.size}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-              {selectedVariant && (
-                <Text style={styles.stockText}>
-                  {selectedVariant.stock_qty > 10
-                    ? '✓ In Stock'
-                    : selectedVariant.stock_qty > 0
-                    ? `⚡ Only ${selectedVariant.stock_qty} left!`
-                    : '✗ Out of Stock'}
-                </Text>
+              {selectedVariant && selectedVariant.stock_qty > 0 && selectedVariant.stock_qty <= 5 && (
+                <Text style={styles.lowStock}>⚡ {selectedVariant.stock_qty} ITEMS LEFT</Text>
+              )}
+              {selectedVariant && selectedVariant.stock_qty < 1 && (
+                <Text style={[styles.lowStock, { color: '#EF4444' }]}>✗ OUT OF STOCK</Text>
               )}
             </View>
           )}
 
+          {/* Specs accordion */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Engineered Specifications</Text>
+            {SPECS.map((spec, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.specRow}
+                onPress={() => setExpandedSpec(expandedSpec === i ? null : i)}
+              >
+                <View style={styles.specLeft}>
+                  <View style={styles.specIcon}><Ionicons name={spec.icon} size={16} color={C.accent} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.specTitle}>{spec.title}</Text>
+                    {expandedSpec === i && <Text style={styles.specDesc}>{spec.desc}</Text>}
+                  </View>
+                </View>
+                <Ionicons name={expandedSpec === i ? 'chevron-up' : 'chevron-down'} size={14} color={C.dim} />
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {/* Description */}
           {product.description && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Description</Text>
+              <Text style={styles.sectionLabel}>About This Product</Text>
               <Text style={styles.description}>{product.description}</Text>
             </View>
           )}
-
-          {/* Material */}
-          {product.material && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Material</Text>
-              <Text style={styles.description}>{product.material}</Text>
-            </View>
-          )}
-
-          {/* Features */}
-          <View style={styles.features}>
-            {[
-              { icon: 'car-outline', label: 'Free delivery above ₹599' },
-              { icon: 'refresh-outline', label: '30-day easy returns' },
-              { icon: 'shield-checkmark-outline', label: '100% genuine product' },
-            ].map(({ icon, label }) => (
-              <View key={label} style={styles.featureItem}>
-                <Ionicons name={icon} size={18} color={C.accent} />
-                <Text style={styles.featureText}>{label}</Text>
-              </View>
-            ))}
-          </View>
 
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
-      {/* Add to cart */}
-      <View style={styles.cartBar}>
-        <TouchableOpacity style={styles.addToCartBtn} onPress={addToCart} disabled={addingToCart}>
+      {/* Bottom bar */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.addBagBtn} onPress={addToCart} disabled={addingToCart}>
           {addingToCart
-            ? <ActivityIndicator color="#fff" />
+            ? <ActivityIndicator color={C.white} size="small" />
             : <>
-                <Ionicons name="bag-add-outline" size={20} color="#fff" />
-                <Text style={styles.addToCartText}>Add to Cart</Text>
+                <Ionicons name="bag-add-outline" size={18} color={C.white} />
+                <Text style={styles.addBagText}>Add to Bag</Text>
               </>
           }
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.buyNowBtn}
-          onPress={async () => {
-            await addToCart();
-            navigation.navigate('Cart');
-          }}
+          onPress={async () => { await addToCart(); if (!addingToCart) navigation.navigate('Cart'); }}
         >
-          <Text style={styles.buyNowText}>Buy Now</Text>
+          <LinearGradient colors={[C.accent, '#c0392b']} style={styles.buyNowGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            <Text style={styles.buyNowText}>Buy Now · {formatPrice(product.sale_price || product.base_price)}</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -290,45 +294,60 @@ export default function ProductScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.white, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-  imageSection: { width, height: width * 0.9, backgroundColor: C.white, position: 'relative' },
-  mainImage: { width: '100%', height: '100%' },
-  imageDots: { position: 'absolute', bottom: 12, alignSelf: 'center', flexDirection: 'row', gap: 6 },
-  imgDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.2)' },
-  imgDotActive: { width: 20, backgroundColor: C.accent },
-  discountTag: { position: 'absolute', top: 16, right: 16, backgroundColor: C.accent, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  discountTagText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  content: { backgroundColor: C.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -20, paddingHorizontal: 20, paddingTop: 24 },
-  infoRow: { flexDirection: 'row', marginBottom: 10 },
-  brand: { fontSize: 11, color: C.gray, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
-  name: { fontSize: 22, fontWeight: '800', color: C.primary, lineHeight: 28 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 14 },
-  ratingText: { fontSize: 12, color: C.gray, marginLeft: 4 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
+  topTitle: { fontSize: 13, fontWeight: '700', color: C.white, letterSpacing: 0.5 },
+  iconBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: C.card2, alignItems: 'center', justifyContent: 'center' },
+  imgContainer: { width, height: width * 0.85, position: 'relative', backgroundColor: C.card },
+  mainImg: { width: '100%', height: '100%' },
+  imgGrad: { position: 'absolute', inset: 0, width: '100%', height: '100%' },
+  limitedBadge: { position: 'absolute', top: 14, left: 14, backgroundColor: C.accent, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 4 },
+  limitedText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 1.5 },
+  imgDots: { position: 'absolute', bottom: 14, right: 14, flexDirection: 'row', gap: 5 },
+  imgDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' },
+  imgDotActive: { width: 20, backgroundColor: C.white },
+  imgOverlay: { position: 'absolute', bottom: 14, left: 14 },
+  imgProductName: { fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: '700', letterSpacing: 1 },
+  content: { backgroundColor: C.bg, paddingHorizontal: 16, paddingTop: 20 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  brandTag: { fontSize: 9, color: C.dim, fontWeight: '700', letterSpacing: 1.5 },
+  topRatedBadge: { backgroundColor: '#1A1A1A', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: '#F59E0B' },
+  topRatedText: { fontSize: 10, fontWeight: '700', color: '#F59E0B' },
+  productName: { fontSize: 24, fontWeight: '900', color: C.white, lineHeight: 30, marginBottom: 10 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 14 },
+  ratingText: { fontSize: 13, fontWeight: '800', color: C.white, marginLeft: 6 },
+  reviewCount: { fontSize: 11, color: C.dim },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
-  price: { fontSize: 26, fontWeight: '800', color: C.primary },
-  oldPrice: { fontSize: 16, color: C.gray, textDecorationLine: 'line-through' },
-  section: { marginBottom: 20 },
-  sectionLabel: { fontSize: 13, fontWeight: '600', color: C.gray, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  price: { fontSize: 32, fontWeight: '900', color: C.white },
+  oldPrice: { fontSize: 18, color: C.dim, textDecorationLine: 'line-through' },
+  discountTag: { backgroundColor: C.accent, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  discountText: { fontSize: 10, fontWeight: '900', color: '#fff' },
+  section: { marginBottom: 24 },
+  sectionLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionLabel: { fontSize: 11, fontWeight: '800', color: C.dim, textTransform: 'uppercase', letterSpacing: 1 },
+  colorCount: { fontSize: 9, color: C.dim, letterSpacing: 0.5 },
+  guideLink: { fontSize: 11, color: C.accent, fontWeight: '700' },
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  colorBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.white },
-  colorBtnActive: { borderColor: C.primary, backgroundColor: C.light },
-  colorDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
-  colorLabel: { fontSize: 12, fontWeight: '600', color: C.gray },
-  sizeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  sizeBtn: { width: 52, height: 52, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.white, alignItems: 'center', justifyContent: 'center' },
-  sizeBtnActive: { borderColor: C.primary, backgroundColor: C.primary },
-  sizeBtnOut: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
-  sizeText: { fontSize: 13, fontWeight: '700', color: C.primary },
-  sizeTextActive: { color: C.white },
-  stockText: { fontSize: 12, color: C.accent, marginTop: 8, fontWeight: '600' },
-  description: { fontSize: 14, color: C.gray, lineHeight: 22 },
-  features: { gap: 10, marginBottom: 10 },
-  featureItem: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, padding: 14, borderRadius: 12 },
-  featureText: { fontSize: 13, color: C.primary, fontWeight: '500' },
-  cartBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 12, padding: 16, backgroundColor: C.white, borderTopWidth: 1, borderTopColor: C.border },
-  addToCartBtn: { flex: 1, backgroundColor: C.primary, borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  addToCartText: { color: C.white, fontSize: 15, fontWeight: '800' },
-  buyNowBtn: { flex: 1, backgroundColor: C.accent, borderRadius: 14, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
-  buyNowText: { color: C.white, fontSize: 15, fontWeight: '800' },
+  colorSwatch: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  colorSwatchActive: { borderColor: C.white, borderWidth: 2.5 },
+  colorDot: { width: 26, height: 26, borderRadius: 13 },
+  sizeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  sizeBtn: { width: 52, height: 52, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+  sizeBtnActive: { borderColor: C.white, backgroundColor: C.white },
+  sizeBtnOut: { borderColor: C.card2, backgroundColor: C.card },
+  sizeText: { fontSize: 13, fontWeight: '700', color: C.white },
+  sizeTextActive: { color: C.bg },
+  sizeTextOut: { color: '#3A3A3A' },
+  lowStock: { fontSize: 11, color: C.accent, fontWeight: '800', marginTop: 10, letterSpacing: 0.5 },
+  specRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
+  specLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, flex: 1 },
+  specIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  specTitle: { fontSize: 13, fontWeight: '700', color: C.white, lineHeight: 18 },
+  specDesc: { fontSize: 11, color: C.dim, marginTop: 4, lineHeight: 16 },
+  description: { fontSize: 13, color: C.gray, lineHeight: 21 },
+  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 10, padding: 16, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.border },
+  addBagBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.card, borderRadius: 14, paddingVertical: 16, flex: 1, borderWidth: 1, borderColor: C.border },
+  addBagText: { color: C.white, fontSize: 13, fontWeight: '800' },
+  buyNowBtn: { flex: 2, borderRadius: 14, overflow: 'hidden' },
+  buyNowGrad: { paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+  buyNowText: { color: C.white, fontSize: 14, fontWeight: '900' },
 });

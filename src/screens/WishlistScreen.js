@@ -8,6 +8,8 @@ import { formatPrice } from '../utils/format';
 import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
+const CARD = (width - 48) / 2;
+const C = { bg: '#0D0D0D', card: '#1A1A1A', card2: '#222', border: '#2A2A2A', accent: '#E34F20', white: '#fff', gray: '#9CA3AF', dim: '#6B7280' };
 
 export default function WishlistScreen({ navigation }) {
   const [items, setItems] = useState([]);
@@ -33,22 +35,22 @@ export default function WishlistScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F8F8' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#111" />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color={C.white} />
         </TouchableOpacity>
         <Text style={styles.title}>Wishlist ({items.length})</Text>
-        <View style={{ width: 22 }} />
+        <View style={{ width: 36 }} />
       </View>
 
-      {loading ? <ActivityIndicator size="large" color="#E34F20" style={{ marginTop: 60 }} /> :
+      {loading ? <ActivityIndicator size="large" color={C.accent} style={{ marginTop: 60 }} /> :
        items.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 60, marginBottom: 16 }}>❤️</Text>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: '#111', marginBottom: 8 }}>Wishlist is empty</Text>
-          <Text style={{ color: '#6B7280', marginBottom: 32 }}>Save items you love</Text>
-          <TouchableOpacity style={styles.shopBtn} onPress={() => navigation.navigate('ShopList')}>
+          <View style={styles.emptyIcon}><Ionicons name="heart-outline" size={40} color={C.dim} /></View>
+          <Text style={{ fontSize: 18, fontWeight: '900', color: C.white, marginBottom: 8 }}>Nothing saved yet</Text>
+          <Text style={{ color: C.dim, marginBottom: 32 }}>Tap the heart on products you love</Text>
+          <TouchableOpacity style={styles.shopBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.shopBtnText}>Discover Products</Text>
           </TouchableOpacity>
         </View>
@@ -61,18 +63,19 @@ export default function WishlistScreen({ navigation }) {
           columnWrapperStyle={{ gap: 16 }}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.card, { width: (width - 48) / 2 }]}
-              onPress={() => navigation.navigate('ShopList', { screen: 'Product', params: { slug: item.slug } })}
+              style={[styles.card, { width: CARD }]}
+              onPress={() => navigation.navigate('ShopList', { screen: 'Product', slug: item.slug })}
+              activeOpacity={0.9}
             >
-              <View style={styles.imgWrap}>
+              <View style={[styles.imgWrap, { height: CARD }]}>
                 <Image source={{ uri: item.image_url }} style={styles.img} />
                 <TouchableOpacity style={styles.heartBtn} onPress={() => remove(item.product_id)}>
-                  <Ionicons name="heart" size={18} color="#EF4444" />
+                  <Ionicons name="heart" size={16} color="#EF4444" />
                 </TouchableOpacity>
               </View>
               <View style={styles.info}>
                 <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
-                <Text style={styles.price}>{item.price ? '₹' + parseFloat(item.price).toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '—'}</Text>
+                <Text style={styles.price}>{formatPrice(item.price)}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -83,15 +86,17 @@ export default function WishlistScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
-  title: { fontSize: 20, fontWeight: '800', color: '#111' },
-  card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 10, elevation: 3 },
-  imgWrap: { width: '100%', height: (width - 48) / 2, position: 'relative' },
-  img: { width: '100%', height: '100%' },
-  heartBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: '#fff', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  info: { padding: 10 },
-  name: { fontSize: 12, fontWeight: '700', color: '#111', marginBottom: 4, lineHeight: 17 },
-  price: { fontSize: 14, fontWeight: '800', color: '#111' },
-  shopBtn: { backgroundColor: '#111', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 18, fontWeight: '900', color: '#fff' },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  shopBtn: { backgroundColor: '#E34F20', paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14 },
   shopBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  card: { backgroundColor: '#1A1A1A', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#2A2A2A' },
+  imgWrap: { width: '100%', position: 'relative', backgroundColor: '#222' },
+  img: { width: '100%', height: '100%' },
+  heartBtn: { position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  info: { padding: 10 },
+  name: { fontSize: 12, fontWeight: '700', color: '#fff', lineHeight: 17, marginBottom: 5 },
+  price: { fontSize: 14, fontWeight: '900', color: '#fff' },
 });

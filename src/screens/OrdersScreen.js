@@ -6,6 +6,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
 import { formatPrice, formatDate, getStatusColor } from '../utils/format';
 
+const C = { bg: '#0D0D0D', card: '#1A1A1A', card2: '#222', border: '#2A2A2A', accent: '#E34F20', white: '#fff', gray: '#9CA3AF', dim: '#6B7280' };
+
 export default function OrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,46 +24,46 @@ export default function OrdersScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F8F8' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#111" />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color={C.white} />
         </TouchableOpacity>
         <Text style={styles.title}>My Orders</Text>
-        <View style={{ width: 22 }} />
+        <View style={{ width: 36 }} />
       </View>
 
-      {loading ? <ActivityIndicator size="large" color="#E34F20" style={{ marginTop: 60 }} /> :
+      {loading ? <ActivityIndicator size="large" color={C.accent} style={{ marginTop: 60 }} /> :
        orders.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 50, marginBottom: 16 }}>📦</Text>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: '#111', marginBottom: 8 }}>No orders yet</Text>
-          <Text style={{ color: '#6B7280' }}>Your orders will appear here</Text>
+          <View style={styles.emptyIcon}><Ionicons name="bag-outline" size={40} color={C.dim} /></View>
+          <Text style={{ fontSize: 18, fontWeight: '900', color: C.white, marginBottom: 8 }}>No orders yet</Text>
+          <Text style={{ color: C.dim }}>Start shopping to see your orders here</Text>
         </View>
       ) : (
         <FlatList
           data={orders}
           keyExtractor={(i) => i.id}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
+          contentContainerStyle={{ padding: 16, gap: 10 }}
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}>
               <View style={styles.orderHeader}>
                 <Text style={styles.orderNum}>{item.order_number}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '22' }]}>
                   <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
                   <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status.replace(/_/g, ' ')}</Text>
                 </View>
               </View>
               <View style={styles.orderMeta}>
                 <Text style={styles.metaText}>{formatDate(item.created_at)}</Text>
-                <Text style={styles.metaText}>·</Text>
-                <Text style={styles.metaText}>{item.payment_method?.toUpperCase()}</Text>
+                <Text style={styles.metaDot}>·</Text>
+                <Text style={styles.metaText}>{(item.payment_method || 'cod').toUpperCase()}</Text>
               </View>
               <View style={styles.orderFooter}>
                 <Text style={styles.total}>{formatPrice(item.total_amount)}</Text>
                 <View style={styles.viewBtn}>
                   <Text style={styles.viewBtnText}>View Details</Text>
-                  <Ionicons name="chevron-forward" size={14} color="#E34F20" />
+                  <Ionicons name="chevron-forward" size={13} color={C.accent} />
                 </View>
               </View>
             </TouchableOpacity>
@@ -73,18 +75,21 @@ export default function OrdersScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
-  title: { fontSize: 20, fontWeight: '800', color: '#111' },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 18, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 3 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 18, fontWeight: '900', color: '#fff' },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  card: { backgroundColor: '#1A1A1A', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#2A2A2A' },
   orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  orderNum: { fontSize: 14, fontWeight: '800', color: '#111', fontFamily: 'monospace' },
+  orderNum: { fontSize: 13, fontWeight: '800', color: '#fff', fontFamily: 'monospace' },
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
-  orderMeta: { flexDirection: 'row', gap: 6, marginBottom: 14 },
-  metaText: { fontSize: 12, color: '#9CA3AF' },
+  statusDot: { width: 5, height: 5, borderRadius: 3 },
+  statusText: { fontSize: 10, fontWeight: '800', textTransform: 'capitalize' },
+  orderMeta: { flexDirection: 'row', gap: 6, marginBottom: 12 },
+  metaText: { fontSize: 11, color: '#6B7280' },
+  metaDot: { fontSize: 11, color: '#3A3A3A' },
   orderFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  total: { fontSize: 18, fontWeight: '800', color: '#111' },
+  total: { fontSize: 18, fontWeight: '900', color: '#fff' },
   viewBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  viewBtnText: { fontSize: 13, fontWeight: '700', color: '#E34F20' },
+  viewBtnText: { fontSize: 12, fontWeight: '700', color: '#E34F20' },
 });
